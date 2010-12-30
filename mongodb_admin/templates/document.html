@@ -1,0 +1,94 @@
+{% extends "database_base.html" %}
+
+{% block extra_styles %}
+<style type="text/css">
+    .submit {
+        margin: 10px 0;
+    }
+
+    input, textarea {
+        margin-left: 5px;
+    }
+
+    textarea {
+        height: 40px;
+        width: 200px;
+    }
+
+    #toolbar {
+        background-color: #ddddff;
+        padding: 5px;
+    }
+    
+    #toolbar * {
+        vertical-align: middle;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="text/javascript">
+    $(function () {
+            $('#add').click(function (e) {
+                e.preventDefault();
+                key = $('#id_key').val();
+                value = $('#id_value').val();
+
+                if (key && value) {
+                    var hidden = $('<input type="hidden" name="'+key+'" />').val(value);
+                    $('#docform .hidden').append(hidden);
+                    $('#docfields').append('<tr><td><span>'+key+'</span></td><td><span>'+value+'</span></td><td><a href="#"><span class="before-del">del</span></a></td></tr>');
+                }
+            });
+    });
+</script>
+{% endblock %}
+{% block content %}
+<h2>{{ colname.capitalize }} Documents</h2>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 200px">Key</th>
+            <th>Value</th>
+            <th>&nbsp;</th>
+        </tr>
+    </thead>
+    <tbody id="docfields">
+        {% if doc %}
+        {% for k, v in doc.iteritems %}
+        <tr>
+            <td><span>{{ k }}</span></td>
+            <td><span class="value">{{ v }}</span></td>
+            <td><a class="del-after" href="#"><span>del</span></a></span></td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+    </tbody>
+    <tfoot>
+        {% comment %}分页{% endcomment %}
+    </tfoot>
+</table>
+<div id="toolbar">
+    <input id="id_key" class="normal-input" type="text" />
+    <textarea id="id_value" class="normal-input"></textarea>
+    <a id="add" href="javascript:;"><span class="plus">+</span></a>
+</div>
+<form id="docform" action="" method="POST">{% csrf_token %}
+    <div class="hidden">
+        {% if oid %}
+        <input type="hidden" name="_id" value="{{ oid }}" />
+        {% endif %}
+        {% if doc %}
+        {% for k, v in doc.iteritems %}
+        <input type="hidden" name="{{ k }}" value="{{ v }}" />
+        {% endfor %}
+        {% endif %}
+    </div>
+    <input class="submit" type="submit" value="确定" />
+</form>
+{% endblock %}

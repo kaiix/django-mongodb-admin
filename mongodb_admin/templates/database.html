@@ -1,0 +1,70 @@
+{% extends "database_base.html" %}
+
+{% block extra_styles %}
+<style type="text/css">
+    .error {
+        margin: 0 5px;
+        color: red;
+    }
+
+    #toolbar {
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="text/javascript">
+    $(function () {
+            $('#add').click(function (e) {
+                e.preventDefault();
+                colname = $('#id_colname').val().trim();
+
+                if (colname) {
+                    $.post('/database/collection/add', {
+                    'colname': colname,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    function (data) {
+                    if (data['created'] === true) {
+                        $('tbody').append('<tr><td><a href="/database/collection/'+colname+'/">'+colname+'</a></td><td>0</td><td><a href="/database/collection/'+colname+'/del">del</a></td></tr>');
+                    } else {
+                        $('.error').remove();
+                        $('#add').after('<span class="error">cannot create collection</span>');
+                    }
+                    }
+                    );
+                }
+                });
+            });
+        </script>
+{% endblock %}
+
+{% block content %}
+<h2>{{ name }}</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Collection</th>
+            <th>Documents</th>
+            <th>&nbsp;</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for colname, count in collections.iteritems %}
+        <tr>
+            <td><a href="/database/collection/{{ colname }}/">{{ colname }}</a></td>
+            <td>{{ count }}</td>
+            <td><a href="/database/collection/{{ collection }}/del">del</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+    </tfoot>
+</table>
+<div id="toolbar">
+    <input id="id_colname" class="normal-input" type="text" name="colname" />
+    <a id="add" href="javascript:;"><span class="plus">+</span></a>
+</div>
+{% endblock %}
+
