@@ -4,6 +4,7 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadReque
 from django.template import RequestContext
 from django.shortcuts import render_to_response
 from django.utils.encoding import smart_unicode
+from django.contrib.auth.decorators import login_required
 
 from pymongo import Connection
 from pymongo.objectid import ObjectId
@@ -13,6 +14,7 @@ from utils import DocumentEncoder, DocumentDecoder
 conn = Connection(settings.MONGODB_HOST, settings.MONGODB_PORT)
 db = conn[settings.MONGODB_NAME]
 
+@login_required
 def database_view(request, template_name='database.html',
             redirect_to='/'):
 
@@ -31,7 +33,7 @@ def database_view(request, template_name='database.html',
     }, context_instance=RequestContext(request))
 
 # spec field name to show
-# use ajax load json of docs?
+@login_required
 def collection_view(request, colname, template_name='collection.html',
             redirect_to='/'):
 
@@ -70,7 +72,6 @@ def clean_post(post_data):
     return data
 
 def save_doc(collection, doc, commit=True):
-    print doc
     if commit:
         oid = collection.save(doc)
         return oid
@@ -101,6 +102,7 @@ class Document(dict):
         super(Document, self).__setitem__(key, self._encoder.encode(value))
 
 #todo documentadmin control how to display
+@login_required
 def document_view(request, colname, doc_id,
                   template_name='document.html',
                   redirect_to='/'):
@@ -127,4 +129,34 @@ def document_view(request, colname, doc_id,
                 to_save[k] = Document.decode(v)
             save_doc(db[colname], to_save)
         return HttpResponseRedirect('/database/collection/%s/' % colname)
+    return HttpResponseBadRequest()
+
+def del_document(request, colname):
+    if request.method == 'POST':
+        colname = smart_unicode(colname.strip())
+        if colname in db.collection_names() and request.POST.get('oid'):
+            oid = request.POST['oid']
+            try:
+                db[colname].remove({'_id': ObjectId(oid)})
+            except:
+                return HttpResponse(simplejson.dumps({'deleted': False}), mimetype='application/json')
+            return HttpResponse(simplejson.dumps({'deleted': True}), mimetype='application/json')
+        else:
+            return HttpResponseBadRequest()
+    return HttpResponseBadRequest()
+
+def del_item(request, colname, oid):
+    if request.method == 'POST':
+        colname = smart_unicode(colname.strip())
+        if colname in db.collection_names() and oid:
+            key = request.POST.get('key')
+            value = request.POST.get('value')
+            doc = db[colname].find({'_id': ObjectId(oid)})
+            if doc and key and value:
+                doc[key] = value
+                save_doc(db[colname], doc)
+                return HttpResponse(simplejson.dumps({'deleted': True}), mimetype='application/json')
+            return HttpResponse(simplejson.dumps({'deleted': False}), mimetype='application/json')
+        else:
+            return HttpResponseBadRequest()
     return HttpResponseBadRequest()

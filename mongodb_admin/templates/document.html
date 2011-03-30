@@ -42,9 +42,36 @@
                 if (key && value) {
                     var hidden = $('<input type="hidden" name="'+key+'" />').val(value);
                     $('#docform .hidden').append(hidden);
-                    $('#docfields').append('<tr><td><span>'+key+'</span></td><td><span>'+value+'</span></td><td><a href="#"><span class="before-del">del</span></a></td></tr>');
+                    $('#docfields').append('<tr class="item"><td class="key">'+key+'</td><td class="value">'+value+'</td><td><a class="remove" href="javascript:;">del</a></td></tr>');
                 }
             });
+
+            $('.remove').click(function (e) {
+                e.preventDefault();
+                $(this).parents('.item').remove();
+            });
+
+            $('.delete').click(function (e) {
+                e.preventDefault();
+                var key = $(this).parents('.item').find('.key').text();
+                var value = $(this).parents('.item').find('.value').text();
+                $('#docform #id_'+key).remove();
+                if (colname) {
+                    $.post('/database/collection/{{ colname }}/document/{{ oid }}/del', {
+                            'csrfmiddlewaretoken': '{{ csrf_token }}',
+                            'key': key,
+                            'value': value,
+                            }, function (data) {
+                                    if (data['deleted'] === true) {
+                                        $(this).parents('.item').remove();
+                                    } else {
+                                        $('.error').remove();
+                                        $(this).after('<span class="error">cannot create collection</span>');
+                                    }
+                                }
+                            );
+                    }
+                });
     });
 </script>
 {% endblock %}
@@ -61,10 +88,10 @@
     <tbody id="docfields">
         {% if doc %}
         {% for k, v in doc.iteritems %}
-        <tr>
-            <td><span>{{ k }}</span></td>
-            <td><span class="value">{{ v }}</span></td>
-            <td><a class="del-after" href="#"><span>del</span></a></span></td>
+        <tr class="item">
+            <td class="key">{{ k }}</td>
+            <td class="value">{{ v }}</td>
+            <td><a class="delete" href="#">del</a></td>
         </tr>
         {% endfor %}
         {% endif %}
